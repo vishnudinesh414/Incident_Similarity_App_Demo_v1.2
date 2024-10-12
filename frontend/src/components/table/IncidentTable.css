@@ -1,0 +1,9 @@
+.similar-incidents-container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: rgba(29, 33, 38, 0.4);
+    border-radius: 5px;
+  }
+  .similar-incidents-heading {
+    color: rgb(255 255 255);
+  }

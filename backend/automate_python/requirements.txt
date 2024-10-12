@@ -1,0 +1,9 @@
+Flask
+pandas
+spacy
+sentence-transformers
+umap-learn
+scikit-learn
+nltk
+notebook
+flask-cors

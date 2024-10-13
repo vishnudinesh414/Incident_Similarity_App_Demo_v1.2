@@ -1,0 +1,12 @@
+# Ignore Python virtual environments
+backend/python_env/
+backend/automate_python/
+
+# Ignore other common files/directories
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.log
+*.egg-info/

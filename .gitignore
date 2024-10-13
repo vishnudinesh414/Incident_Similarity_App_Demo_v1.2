@@ -16,10 +16,6 @@ backend/python_env/
 
 backend/models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl
 
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
 /.pnp
 .pnp.js
 

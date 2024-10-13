@@ -14,7 +14,7 @@ g
 # Ignore Python virtual environment
 backend/python_env/
 
-backend/modals/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl
+backend/models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl
 
 /.pnp
 .pnp.js

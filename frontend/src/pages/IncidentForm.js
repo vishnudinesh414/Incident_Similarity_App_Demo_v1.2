@@ -3,22 +3,26 @@ import axios from "axios";
 import "./IncidentForm.css";
 import incidentStore from "../store/store";
 import IncidentTable from "../components/table/IncidentTable";
+import { Typography } from "@mui/material";
+import api from "../api/api";
 
 const Incidentsimilarity = () => {
   const [incident, setIncident] = useState(incidentStore.currentIncident);
   const [similarIncidents, setSimilarIncidents] = useState(
     incidentStore.similarIncidents
   );
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("http://localhost:5000/api/predict", {
+      const { data } = await api.post("http://localhost:5000/api/predict", {
         incident,
       });
       setSimilarIncidents(data.similar_incidents);
       incidentStore.setSimilarIncidents(data.similar_incidents);
       incidentStore.setCurrentIncident(incident);
+      setSubmitted(true);
     } catch (error) {
       console.error("Error submitting incident:", error);
     }
@@ -53,11 +57,10 @@ const Incidentsimilarity = () => {
           </button>
         </div>
       </form>
-
-      {similarIncidents.length > 0 && (
-        <IncidentTable
-          payload={similar_incident_payload}
-        />
+      {similarIncidents.length > 0 ? (
+        <IncidentTable payload={similar_incident_payload} />
+      ) : (
+        submitted && <Typography>No similar incident found!!!!</Typography>
       )}
     </div>
   );

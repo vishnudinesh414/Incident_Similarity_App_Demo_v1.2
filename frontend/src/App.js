@@ -24,7 +24,7 @@ const theme = createTheme({
 const tabData = [{ label: "Search" }, { label: "Clusters" }];
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState("Search"); // State to track the active tab
+  const [activeTab, setActiveTab] = useState("Search");
 
   const handleTabChange = (tab) => {
     console.log(tab);

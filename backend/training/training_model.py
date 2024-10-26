@@ -1,74 +1,57 @@
 import pandas as pd
-import spacy
-import numpy as np
 import umap.umap_ as umap
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-from nltk.corpus import stopwords
+from sklearn.metrics import silhouette_score
 from nltk import download
-import re
 import joblib
+import logging
+from common.incident_preprocessor import IncidentPreProcessor
+from store.json_handler import read_data, update_data
 
-# Download necessary NLTK data only if not already downloaded
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+
+preProcessingInstence = IncidentPreProcessor()
 download('stopwords', quiet=True)
 
-class ClusteringModel:
+class ClusterTrainingingModel:
     def __init__(self):
         self.kmeans_model = None
         self.scaler = None
         self.umap_reducer = None
         self.sentence_model = None
-        self.cluster_assignments = None  # To store cluster assignments
-        self.df = None  # To store the DataFrame with descriptions
-
-    def remove_before_colon(self, sentence):
-        # Remove content before the first colon or "DVT:"
-        sentence = sentence.split("DVT:", 1)[-1] if "DVT:" in sentence else sentence.split(":", 1)[-1]
+        self.cluster_assignments = None
+        self.df = None
+        data = read_data('store/store.json')
+        self.current_csv_length = data['current_length']
+        self.n_cluster = data['n_clusters']
         
-        # Define patterns to remove specific terms/versions
-        patterns = [
-            r'\balizon(?:_?[a-zA-Z]?\d+)?\b',
-            r'\bv\d{5}\b',
-            r'\bv\d+\.\d+\.\d+(?:\.\d+)?\b'
-        ]
-        
-        for pattern in patterns:
-            sentence = re.sub(pattern, '', sentence)
+    def cluster_number(self,reduced_embeddings, incoming_csv_length):
+        # Determine optimal number of clusters using silhouette score
+        silhouette_scores = []
+        range_n_clusters = range(2, incoming_csv_length // 10)
 
-        return sentence.strip()
+        for n_clusters in range_n_clusters:
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            cluster_labels = kmeans.fit_predict(reduced_embeddings)
+            silhouette_avg = silhouette_score(reduced_embeddings, cluster_labels)
+            silhouette_scores.append((silhouette_avg, n_clusters))
 
-    def preprocess_data(self, file_path):
-        df = pd.read_csv(file_path, encoding='latin1').dropna(subset=["Short Description"])
+        # Choose the best number of clusters based on silhouette score
+        optimal_silhouette_score, optimal_n_clusters = max(silhouette_scores, key=lambda x: x[0])  
+        logging.info(f"Cluster number finding completed!!!!!!!!")
+        logging.info(f"Optimal number of clusters based on silhouette score: {optimal_n_clusters} with a silhouette score of: {optimal_silhouette_score:.4f}")
+        return optimal_n_clusters
+
+    def train(self, file_path):
+        df = pd.read_csv(file_path, encoding='latin1')
+        incoming_csv_length = len(df["Short Description"])
+        df = df.dropna(subset=["Short Description"])
         df.reset_index(drop=True, inplace=True)
-        nlp = spacy.load("en_core_web_sm")
-        
-        # Clean and tokenize descriptions in one go using a single apply function
-        df["Cleaned_Description"] = (
-            df["Short Description"]
-            .apply(self.remove_before_colon)
-            .str.lower()
-            .str.strip()
-            .str.replace(r'[^a-zA-Z0-9\s]', '', regex=True)
-            .apply(lambda x: [token.text for token in nlp(x)])
-            .apply(lambda x: [word for word in x if word not in self.get_stopwords()])
-            .apply(lambda x: [token.lemma_ for token in nlp(' '.join(x))])
-            .apply(lambda x: ' '.join(x))
-        )
-
-        return df
-
-    def get_stopwords(self):
-        stop_words = set(stopwords.words('english'))
-        additional_stopwords = {'issue', 'poco', 'corvette14', 'corvette', 'pocowestern', 'error', 'problem', 
-                                'zbook', 'western', 'probook', 'notebook', 'elitebook', 'elitedesk', 
-                                'dragonfly', 'pavilion', 'zbookfury'}
-        stop_words.update(additional_stopwords)
-        return stop_words 
-
-    def train(self, file_path, n_clusters=92):
-        self.df = self.preprocess_data(file_path)
-        
+        short_description_list = df["Short Description"].tolist()
+        df["Cleaned_Description"] = preProcessingInstence.preprocess_data(short_description_list)
+        self.df = df.copy() 
         cleaned_descriptions = self.df["Cleaned_Description"].tolist()
     
         self.sentence_model = SentenceTransformer('all-MiniLM-L12-v2')
@@ -86,16 +69,18 @@ class ClusteringModel:
         )
         
         reduced_embeddings = self.umap_reducer.fit_transform(scaled_embeddings)
-    
+        if incoming_csv_length != self.current_csv_length:
+            n_clusters = self.cluster_number(reduced_embeddings, incoming_csv_length)
+            update_data('store/store.json','current_length', incoming_csv_length)
+            update_data('store/store.json','n_clusters', n_clusters)
+        else:
+            n_clusters = self.n_cluster
         self.kmeans_model = KMeans(n_clusters=n_clusters, random_state=46)
         self.cluster_assignments = self.kmeans_model.fit_predict(reduced_embeddings)
     
         # Save cluster assignments to a CSV file
         self.df['Cluster'] = self.cluster_assignments
-        self.df.to_csv('../data/cluster_assignments.csv', index=False)
-        
-        cluster_centers_df = pd.DataFrame(self.kmeans_model.cluster_centers_)
-        cluster_centers_df.to_csv("../data/cluster_centers.csv", index=False)
+        logging.info(f"Training completed!!!!!!!!")
 
     def save(self, filename):
         joblib.dump({
@@ -106,13 +91,3 @@ class ClusteringModel:
             'sentence_model': self.sentence_model,
             'df': self.df,
         }, filename)
-
-    @classmethod
-    def load(cls, filename):
-        return joblib.load(filename)
-
-
-if __name__ == "__main__":
-    model = ClusteringModel()
-    model.train('../data/new_pseudonymized_in.csv')
-    model.save('../models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl')

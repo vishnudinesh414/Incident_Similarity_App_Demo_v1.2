@@ -1,14 +1,17 @@
-# app.py
+import cherrypy
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models.Custom_Incident_Classfication import ClusteringModel
 import numpy as np
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 app = Flask(__name__)
 CORS(app)
 
 # Load your trained model
-model = ClusteringModel.load('models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl')  # Replace with your model filename
+model = ClusteringModel.load('models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl')
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
@@ -18,9 +21,16 @@ def predict():
     if not incident:
         return jsonify({'error': 'No incident provided'}), 400
 
-    similar_incidents = model.get_sorted_cluster_items_by_similarity(incident)
+    try:
+        similar_incidents = model.get_sorted_cluster_items_by_similarity(incident)
+        if len(similar_incidents) > 0:
+            logging.info("Similar Incidents found!")
+        else:
+            logging.info("Prediction completed with no similar incidents!")
+    except Exception as e:
+        logging.error(f"An error occurred during prediction: {e}")
+        return jsonify({'error': str(e)}), 500
 
-    # Convert similar_incidents to a standard format including Observation ID, Short Description, and similarity score
     similar_incidents = [(item[0][0], item[0][1], float(item[1])) for item in similar_incidents]
 
     return jsonify({
@@ -29,20 +39,24 @@ def predict():
 
 @app.route('/api/clusters', methods=['GET'])
 def get_clusters():
-    all_clusters,df_incident = model.get_all_clusters()
-    
-    # Convert all clusters to a list if they are numpy arrays
+    all_clusters, df_incident = model.get_all_clusters()
+
     if isinstance(all_clusters, np.ndarray):
         all_clusters = all_clusters.tolist()
     elif isinstance(all_clusters, (list, tuple)):
         all_clusters = [item.tolist() if isinstance(item, np.ndarray) else item for item in all_clusters]
 
-    print(set(all_clusters))
     return jsonify({
         'clusters': all_clusters,
         'incidents': df_incident
     })
 
-    
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Start CherryPy server and run the Flask app
+    cherrypy.tree.graft(app)  # Correctly graft the Flask app into CherryPy
+    cherrypy.config.update({'server.socket_host': '127.0.0.1',
+                            'server.socket_port': 5000})
+    
+    # Start the CherryPy engine
+    cherrypy.engine.start()
+    cherrypy.engine.block()

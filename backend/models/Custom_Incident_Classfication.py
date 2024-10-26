@@ -4,9 +4,13 @@ from nltk import download
 import re
 import joblib
 from sklearn.metrics.pairwise import cosine_similarity
+from common.incident_preprocessor import IncidentPreProcessor
+
+preProcessingInstence = IncidentPreProcessor()
 
 # Download necessary NLTK data
 download('stopwords')
+
 
 class ClusteringModel:
     def __init__(self):
@@ -15,59 +19,28 @@ class ClusteringModel:
         self.umap_reducer = None
         self.sentence_model = None
         self.cluster_assignments = None
-        self.df = None
+        self.df = None 
 
-    def remove_before_colon(self, sentence):
-        # Remove content before the first colon or "DVT:"
-        sentence = sentence.split("DVT:", 1)[-1] if "DVT:" in sentence else sentence.split(":", 1)[-1]
-        
-        patterns = [
-            r'\balizon(?:_?[a-zA-Z]?\d+)?\b',
-            r'\bv\d{5}\b',
-            r'\bv\d+\.\d+\.\d+(?:\.\d+)?\b'
-        ]
-        
-        for pattern in patterns:
-            sentence = re.sub(pattern, '', sentence)
-
-        return sentence.strip()
-
-    def predict(self, new_incident):
-        # Preprocess the incoming incident
-        preprocessed_incident = self.remove_before_colon(new_incident)
-        nlp = spacy.load("en_core_web_sm")
-        cleaned_incident_text = (preprocessed_incident.lower().strip())
-        cleaned_incident_text = re.sub(r'[^a-zA-Z0-9\s]', '', cleaned_incident_text)
-        tokenized_incident = [token.text for token in nlp(cleaned_incident_text)]
-        stop_words = set(stopwords.words('english'))
-        additional_stopwords = {'issue', 'poco', 'corvette14', 'corvette', 'pocowestern', 'error', 'problem', 
-                                'zbook', 'western', 'probook', 'notebook', 'elitebook', 'elitedesk', 'dragonfly',
-                                'pavilion', 'zbookfury'}
-        stop_words.update(additional_stopwords)
-        # Removing stopwords
-        filtered_incident = [word for word in tokenized_incident if word not in stop_words]
-        # Lemmatize
-        lemmatized_incident = [token.lemma_ for token in nlp(' '.join(filtered_incident))]
-        final_cleaned_incident = ' '.join(lemmatized_incident)
-
-        # Encode the cleaned incident
-        cleaned_incident_embedding = self.sentence_model.encode([final_cleaned_incident], convert_to_tensor=True)
-
-        # Scale and reduce the incident embedding
+    def predict(self, cleaned_incident):
+        cleaned_incident_embedding = self.sentence_model.encode(cleaned_incident, convert_to_tensor=True)
         scaled_incident = self.scaler.transform(cleaned_incident_embedding.cpu().numpy())
         reduced_incident = self.umap_reducer.transform(scaled_incident)
 
         cluster = self.kmeans_model.predict(reduced_incident)
+        
         return cluster[0]
     
     def get_predicted_cluster_items(self, new_incident):
-        predicted_cluster= self.predict(new_incident)
+        cleaned_incident = preProcessingInstence.preprocess_data(new_incident)
+        predicted_cluster= self.predict(cleaned_incident)
         items_in_cluster = self.df[self.cluster_assignments == predicted_cluster][['Observation ID', 'Short Description']].values.tolist()
+        
         return items_in_cluster
     
     def get_all_clusters(self):
         clusters= self.cluster_assignments
         df_incident = self.df["Short Description"].tolist()
+        
         return clusters, df_incident
 
     def get_sorted_cluster_items_by_similarity(self, new_incident):

@@ -4,6 +4,7 @@ import axios from "axios";
 import IncidentStore from "../store/store";
 import IncidentTable from "../components/table/IncidentTable";
 import incidentStore from "../store/store";
+import api from "../api/api";
 
 const IncidentClusters = observer(() => {
   const [error, setError] = useState(null);
@@ -14,7 +15,7 @@ const IncidentClusters = observer(() => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/clusters");
+        const response = await api.get("http://localhost:5000/api/clusters");
         setClusters(response.data.clusters);
         setIncidents(response.data.incidents);
         IncidentStore.setClusters(response.data.clusters);

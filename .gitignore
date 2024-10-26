@@ -35,3 +35,11 @@ backend/models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+node_modules
+build
+.dockerignore
+Dockerfile
+README.md
+*.log
+*.env

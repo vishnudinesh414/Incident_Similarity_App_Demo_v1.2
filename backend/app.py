@@ -1,9 +1,9 @@
-import cherrypy
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models.Custom_Incident_Classfication import ClusteringModel
 import numpy as np
 import logging
+from waitress import serve
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -51,12 +51,5 @@ def get_clusters():
         'incidents': df_incident
     })
 
-if __name__ == '__main__':
-    # Start CherryPy server and run the Flask app
-    cherrypy.tree.graft(app)  # Correctly graft the Flask app into CherryPy
-    cherrypy.config.update({'server.socket_host': '127.0.0.1',
-                            'server.socket_port': 5000})
-    
-    # Start the CherryPy engine
-    cherrypy.engine.start()
-    cherrypy.engine.block()
+if __name__ == "__main__":
+    serve(app, host='127.0.0.1', port=5000)

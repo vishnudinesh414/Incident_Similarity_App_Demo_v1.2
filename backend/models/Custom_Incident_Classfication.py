@@ -1,6 +1,4 @@
 import spacy
-from nltk.corpus import stopwords
-from nltk import download
 import re
 import joblib
 from sklearn.metrics.pairwise import cosine_similarity
@@ -8,8 +6,6 @@ from common.incident_preprocessor import IncidentPreProcessor
 
 preProcessingInstence = IncidentPreProcessor()
 
-# Download necessary NLTK data
-download('stopwords')
 
 
 class ClusteringModel:

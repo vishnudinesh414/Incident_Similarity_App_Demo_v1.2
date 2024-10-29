@@ -15,7 +15,7 @@ const IncidentClusters = observer(() => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await api.get("http://localhost:5000/api/clusters");
+        const response = await api.get("/api/clusters");
         setClusters(response.data.clusters);
         setIncidents(response.data.incidents);
         IncidentStore.setClusters(response.data.clusters);

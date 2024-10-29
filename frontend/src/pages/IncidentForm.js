@@ -16,7 +16,7 @@ const Incidentsimilarity = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await api.post("http://localhost:5000/api/predict", {
+      const { data } = await api.post("/api/predict", {
         incident,
       });
       setSimilarIncidents(data.similar_incidents);

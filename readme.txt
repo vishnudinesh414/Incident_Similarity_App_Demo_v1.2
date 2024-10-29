@@ -20,6 +20,7 @@ Create Environment
 Train and create our Custom model
 -------------------------------------
 6. Once activate run the command "python app_training.py"
+(if nltk issue is there give this "python -m nltk.downloader stopwords" and start from step 1)
 7. Once done you can run the app using "python app.py" and you are good to go
 
 (Use postman to inspect payload and output)

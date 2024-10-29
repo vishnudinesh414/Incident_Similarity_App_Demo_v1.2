@@ -8,7 +8,7 @@ from waitress import serve
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Load your trained model
 model = ClusteringModel.load('models/K-Mean_MiniLM-Custom_Incident_Classification_Model.pkl')
@@ -52,4 +52,5 @@ def get_clusters():
     })
 
 if __name__ == "__main__":
-    serve(app, host='127.0.0.1', port=5000)
+    logging.info("Server starting....")
+    serve(app, host='0.0.0.0', port=5000)

@@ -1,8 +1,17 @@
 import re
 import spacy
-from nltk.corpus import stopwords
+import nltk
 import pandas as pd
-from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+
+# Ensure stopwords are downloaded
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    logging.info("Downloading NLTK stopwords...")
+    nltk.download('stopwords', quiet=True)
 
 class IncidentPreProcessor:
     def __init__(self):
@@ -50,7 +59,7 @@ class IncidentPreProcessor:
         return cleanedIncidentList.tolist() 
 
     def get_stopwords(self):
-        stop_words = set(stopwords.words('english'))
+        stop_words = set(nltk.corpus.stopwords.words('english'))
 
         additional_stopwords = set()
         try:

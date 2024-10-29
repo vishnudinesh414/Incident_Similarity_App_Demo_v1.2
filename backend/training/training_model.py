@@ -4,6 +4,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
+from nltk import download
 import joblib
 import logging
 from common.incident_preprocessor import IncidentPreProcessor
@@ -12,6 +13,7 @@ from store.json_handler import read_data, update_data
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 preProcessingInstence = IncidentPreProcessor()
+download('stopwords', quiet=True)
 
 class ClusterTrainingingModel:
     def __init__(self):
